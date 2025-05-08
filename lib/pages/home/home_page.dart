@@ -23,7 +23,7 @@ class HomePage extends StatelessWidget {
         child: Obx(() {
           final user = auth.user.value;
           if (user == null) return Text('로그인 정보 없음');
-          return Text('${user.name}님, (${user.email}) 환영합니다!');
+          return Text('${user.name}님, 환영합니다!');
         }),
       ),
     );

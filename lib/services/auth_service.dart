@@ -1,26 +1,93 @@
 import 'package:get/get.dart';
 import 'package:getx_test/models/user_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService extends GetxService {
-  //돌려 쓸 사용자 정보
   Rx<AppUser?> user = Rx<AppUser?>(null);
-
-  // 로그인 여부를 저장하는 observable 변수
   bool get isLoggedIn => user.value != null;
 
-  void login(String email, String password) {
-    // 여기에서 실제 로그인 요청을 보내고 성공 응답을 받은 후 아래처럼 저장
-    user.value = AppUser(name: '홍길동', email: email);
+  final _supabase = Supabase.instance.client;
+
+  Future<void> signup(String email, String password, String name) async {
+    try {
+      final response = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      final authUser = response.user;
+
+      if (authUser != null) {
+        final now = DateTime.now();
+
+        final newUser = AppUser(
+          id: authUser.id,
+          name: name,
+        );
+
+        // Supabase users 테이블에 삽입
+        await _supabase.from('users').insert(newUser.toJson());
+
+        user.value = newUser;
+      }
+    } on AuthException catch (e) {
+      Get.snackbar('회원가입 실패', e.message);
+    } catch (e) {
+      Get.snackbar('오류', '회원가입 중 문제가 발생했습니다.');
+    }
   }
 
-  void logout() {
+  Future<void> login(String email, String password) async {
+    try {
+      final response = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      final session = response.session;
+      final authUser = response.user;
+
+      if (session != null && authUser != null) {
+        final userRes = await _supabase
+            .from('users')
+            .select()
+            .eq('id', authUser.id)
+            .maybeSingle();
+
+        if (userRes != null) {
+          user.value = AppUser.fromJson(userRes);
+        } else {
+          Get.snackbar('오류', '사용자 정보가 존재하지 않습니다.');
+        }
+      }
+    } on AuthException catch (e) {
+      Get.snackbar('로그인 실패', e.message);
+    } catch (e) {
+      Get.snackbar('오류', '예기치 못한 오류가 발생했습니다.');
+    }
+  }
+
+  void logout() async {
+    await _supabase.auth.signOut();
     user.value = null;
   }
 
-  // 앱 시작 시 로그인 상태 확인 등 초기화 함수
   Future<AuthService> init() async {
-    // 예: SharedPreferences나 SecureStorage에서 토큰 확인 가능
-    // isLoggedIn.value = true; // 자동 로그인 처리 가능
+    final session = _supabase.auth.currentSession;
+    final authUser = _supabase.auth.currentUser;
+
+    if (session != null && authUser != null) {
+      final userRes = await _supabase
+          .from('users')
+          .select()
+          .eq('id', authUser.id)
+          .maybeSingle();
+
+      if (userRes != null) {
+        user.value = AppUser.fromJson(userRes);
+      }
+    }
+
     return this;
   }
 }
