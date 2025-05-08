@@ -18,8 +18,6 @@ class AuthService extends GetxService {
       final authUser = response.user;
 
       if (authUser != null) {
-        final now = DateTime.now();
-
         final newUser = AppUser(
           id: authUser.id,
           name: name,
