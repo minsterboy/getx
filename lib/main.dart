@@ -1,25 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'pages/home_page.dart';
-import 'pages/login_page.dart';
+import 'package:getx_test/app/routes/app_pages.dart';
 import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Get.putAsync(() => AuthService().init());
+  await Get.putAsync(() => AuthService().init()); // AuthService 전역 등록
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
-    final auth = Get.find<AuthService>();
-
-    return Obx(() => GetMaterialApp(
-          title: 'GetX 로그인 예제',
-          home: auth.isLoggedIn.value ? HomePage() : LoginPage(),
-        ));
+    return GetMaterialApp(
+      title: 'GetX App',
+      debugShowCheckedModeBanner: false,
+      initialRoute: AppRoutes.SPLASH, // 무조건 Splash로 시작
+      getPages: appPages,
+    );
   }
 }
